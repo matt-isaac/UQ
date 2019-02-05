@@ -2,6 +2,8 @@ cl# -*- coding: utf-8 -*-
 """
 Created on Wed Jan 30 13:17:49 2019
 
+Accessed 2/5
+
 MCMC Textbook, Example 2.1 (p.44)
 
 @author: misaa
