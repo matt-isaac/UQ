@@ -1,8 +1,6 @@
-cl# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Created on Wed Jan 30 13:17:49 2019
-
-Accessed 2/5
 
 MCMC Textbook, Example 2.1 (p.44)
 
@@ -10,27 +8,48 @@ MCMC Textbook, Example 2.1 (p.44)
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
-def likelihood_func(x_array, mu, sigma2):
-    terms = np.zeros(len(x_array))
-    t1 = 1/np.sqrt(2 * np.pi * sigma2)
-    counter = 0
-    for x in x_array:
-        t2 = -0.5 * ((x - mu)**2 / sigma2)
-        terms[counter] = t1 * np.exp(t2)
-        counter = counter + 1
-    lik = np.prod(terms)
-    return(lik)
+def calc_tau(n, sig2, t0):
+    return(((n/sig2) + (1/t0))**-1)
     
-def update_tau2(n, sigma2, tau2_prev):
-    return(n * (1/sigma2) + (1/tau2_prev))
+def calc_mu(n, xbar, sig2, mu0, t0, t1):
+    return(t1 * (((n*xbar)/sig2) + (mu0/t0)))
     
-def update_mu(n, tau2_1, sigma2, xbar, mu_prev):
-    return(tau2_1 * (n * (1/sigma2) * xbar + (1/tau2_1) * mu_prev))
+def mu_post(xs, sig2, mu0, t0):
+    n = len(xs)
+    xbar = np.mean(xs)
     
-x = np.random.normal(5, 0.5, size = 100)
-        
-update_mu(n = 100, tau2_1 = 2, sigma2 = 0.5, xbar = np.mean(x), mu_prev = 2) 
+    t1 = calc_tau(n = n, sig2 = sig2, t0 = t0)
+    mu1 = calc_mu(n = n, xbar = xbar, sig2 = sig2, mu0 = mu0, t0 = t0, t1 = t1)
+    
+    t1 = np.round(t1, 4)
+    mu1 = np.round(mu1, 4)
+    
+    return((mu1, t1))
+    
 
-       
+var = 2
+mean = 5
+n_lst = np.arange(100, 10000, 100)
+
+mu0 = 8
+tau0 = 0.5
+
+mus = np.zeros(len(n_lst))
+taus = np.zeros(len(n_lst))
+
+
+
+counter = 0
+for n in n_lst:
+    x = np.random.normal(mean, np.sqrt(var), size = n)
+    pd = mu_post(xs = x, sig2 = var, mu0 = mu0, t0 = tau0)
+    mus[counter] = pd[0]
+    taus[counter] = pd[1]
+    counter = counter + 1
+    print(str(counter) + ". n = " + str(n) + ", mu: " + str(pd[0]) + ", tau2: " + str(pd[1]))
     
+
+plt.plot(n_lst, mus)
+plt.show()
