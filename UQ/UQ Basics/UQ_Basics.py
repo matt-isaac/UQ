@@ -265,7 +265,10 @@ def al_ep_toss(a_probs, distns, bounds = None):
           if result == 1:
               al_dict[str(variable)] = distns[str(variable)]
           else:
-              ep_dict[str(variable)] = distns[str(variable)]
+              if bounds is not None:
+                  ep_dict[str(variable)] = bounds[str(variable)]
+              else:
+                  ep_dict[str(variable)] = distns[str(variable)]
     return(al_dict, ep_dict)                         
 
 def three_dim_uq(num_inner, num_outer, num_toss, a_probs_dict, dist_dict, calc_srq, bound_dict=None, title = None):
@@ -276,7 +279,7 @@ def three_dim_uq(num_inner, num_outer, num_toss, a_probs_dict, dist_dict, calc_s
     for toss in range(0, num_toss, 1):
         cdf_resolu = 1000 # resolution of cdf (how many points to evaluate cdf at)
         count_outer = 0 # counter for outer loop
-        dist_dict_aleatory, dist_dict_epistemic = al_ep_toss(a_probs_dict, dist_dict)
+        dist_dict_aleatory, dist_dict_epistemic = al_ep_toss(a_probs_dict, dist_dict, bound_dict)
         print("Toss:" + str(toss_counter))
         print("Aleatory: " + str(list(dist_dict_aleatory.keys())))
         print("Epistemic: " + str(list(dist_dict_epistemic.keys())))
@@ -301,56 +304,6 @@ def three_dim_uq(num_inner, num_outer, num_toss, a_probs_dict, dist_dict, calc_s
     ql, qu = plot_cdfs(cdfs_arr,xs, dim = 3, title = title)
     return(xs, ql, qu)
 
-        
-#def three_dim_uq(num_inner, num_outer, num_toss, a_probs_dict, dist_dict, calc_srq, bound_dict=None):
-#    """
-#    a_probs_dict : dictionary
-#        dictionary containing the probability of each variable being aleatory    
-#    """
-#    cdfs = []
-#    toss_counter = 0
-#    for t in range(0, num_toss, 1):
-#        dist_dict_aleatory, dist_dict_epistemic = al_ep_toss(a_probs_dict, dist_dict)
-#        
-#        for i in range(0, num_outer, 1):
-#            ep_inputs = sample_inputs(dist_dict = dist_dict_epistemic)
-#            srqs = []
-#            for j in range(0, num_inner, 1):
-#                al_inputs = sample_inputs(dist_dict = dist_dict_aleatory)
-#                inputs = {**al_inputs, **ep_inputs}
-#                result = calc_srq(**inputs)
-#                srqs.append(result)
-#            cdf = calc_cdf(srq_list = srqs)
-#            cdfs.append(cdf)
-#        print("Toss:" + str(toss_counter))
-#        print("Aleatory: " + str(list(dist_dict_aleatory.keys())))
-#        print("Epistemic: " + str(list(dist_dict_epistemic.keys())))
-#        toss_counter = toss_counter + 1
-#    plot_cdfs(cdfs)
-#    
-#def three_dim_uq_v2(num_inner, num_outer, num_toss, a_probs_dict, dist_dict, calc_srq, bound_dict=None):
-#    """
-#    a_probs_dict : dictionary
-#        dictionary containing the probability of each variable being aleatory    
-#    """
-#    cdfs = []
-##    toss_counter = 0        
-#    for i in range(0, num_outer, 1):
-#        dist_dict_aleatory, dist_dict_epistemic = al_ep_toss(a_probs_dict, dist_dict)
-#        ep_inputs = sample_inputs(dist_dict = dist_dict_epistemic)
-#        srqs = []
-#        for j in range(0, num_inner, 1):
-#            al_inputs = sample_inputs(dist_dict = dist_dict_aleatory)
-#            inputs = {**al_inputs, **ep_inputs}
-#            result = calc_srq(**inputs)
-#            srqs.append(result)
-#        cdf = calc_cdf(srq_list = srqs)
-#        cdfs.append(cdf)
-##    print("Toss:" + str(toss_counter))
-##    print("Aleatory: " + str(list(dist_dict_aleatory.keys())))
-##    print("Epistemic: " + str(list(dist_dict_epistemic.keys())))
-##    toss_counter = toss_counter + 1
-#    plot_cdfs(cdfs)
 
 ## Unit Tests
 def test_1d_uq():
@@ -399,53 +352,163 @@ def test_3d_uq():
 #test_2d_uq()
 #test_3d_uq()
 
+## Define constants (var distrn's)
+e1L = 0.5
+e1U = 0.7
+mu_e1 = np.mean((e1L, e1U))
+s_e1 = (e1U - mu_e1)/3
+e1_scl = e1U-e1L
+
+e2L = 1
+e2U = 1.1
+mu_e2 = np.mean((e2L,e2U))
+s_e2 = (e2U-mu_e2)/3 
+e2_scl = e2U-e2L
+
+e3L = 100
+e3U = 110
+mu_e3 = np.mean((e3L,e3U))
+s_e3 = (e3U-mu_e3)/3 
+e3_scl = e3U-e3L
+
+mu_a1 = 2
+s_a1 = 0.13
+a1L = mu_a1-3*s_a1
+a1U = mu_a1+3*s_a1
+a1_scl = a1U-a1L
+
+mu_a2 = 7
+s_a2 = 0.55
+a2L = mu_a2-3*s_a2
+a2U = mu_a2+3*s_a2
+a2_scl = a2U-a2L
+
+mu_a3 = 50
+s_a3 = 1.2
+a3L = mu_a3-3*s_a3
+a3U = mu_a3+3*s_a3
+a3_scl = a3U-a3L
+
 ###############################################################################
 # Tests with 2D UQ
 ###############################################################################
 # original
-dist_dict_al = {'a1': norm(loc = 2, scale = 0.13),
-                'a2': norm(loc = 7, scale = 0.55),
-                'a3': norm(loc = 50, scale = 0.12)}
+dist_dict_al = {'a1': norm(loc = mu_a1, scale = s_a1),
+                'a2': norm(loc = mu_a2, scale = s_a2),
+                'a3': norm(loc = mu_a3, scale = s_a3)}
 
-dist_dict_ep = {'e1':  uniform(loc = 0.5, scale = 0.2),
-                'e2': uniform(loc = 1, scale = 0.1),
-                'e3': uniform(loc = 100, scale = 10)}
+dist_dict_ep = {'e1':  uniform(loc = e1L, scale = e1_scl),
+                'e2': uniform(loc = e2L, scale = e2_scl),
+                'e3': uniform(loc = e3L, scale = e3_scl)}
 
 xs2, pl2, pu2 = two_dim_uq(num_inner=700, num_outer=500, 
                dist_dict_aleatory = dist_dict_al, 
                dist_dict_epistemic = dist_dict_ep, 
                calc_srq = srq1,
                title = "Original")
-#
+
+###############################
+### Distributions left the same
+###############################
 ## move aleatory to epistemic
-#dist_dict_al = {'a1': norm(loc = 2, scale = 0.13),
-#                'a2': norm(loc = 7, scale = 0.55)}
-#
-#dist_dict_ep = {'e1':  uniform(loc = 0.5, scale = 0.2),
-#                'e2': uniform(loc = 1, scale = 0.1),
-#                'e3': uniform(loc = 100, scale = 10),
-#                'a3': norm(loc = 50, scale = 0.12)}
-#
-#two_dim_uq(num_inner=700, num_outer=500, 
-#               dist_dict_aleatory = dist_dict_al, 
-#               dist_dict_epistemic = dist_dict_ep, 
-#               calc_srq = srq1,
-#               title = "Al to Ep")
-#      
-## move epistemic to aleatory
-#dist_dict_al = {'a1': norm(loc = 2, scale = 0.13),
-#                'a2': norm(loc = 7, scale = 0.55),
-#                'a3': norm(loc = 50, scale = 0.12),
-#                'e3': uniform(loc = 100, scale = 10)}
-#
-#dist_dict_ep = {'e1':  uniform(loc = 0.5, scale = 0.2),
-#                'e2': uniform(loc = 1, scale = 0.1)}
-#
-#two_dim_uq(num_inner=700, num_outer=500, 
-#               dist_dict_aleatory = dist_dict_al, 
-#               dist_dict_epistemic = dist_dict_ep, 
-#               calc_srq = srq1,
-#               title = "Ep to Al")
+
+
+###############################
+### Distributions changed
+###############################
+### move aleatory to epistemic
+
+# a3 to ep
+dist_dict_al = {'a1': norm(loc = mu_a1, scale = s_a1),
+                'a2': norm(loc = mu_a2, scale = s_a2)}
+
+dist_dict_ep = {'e1':  uniform(loc = e1L, scale = e1_scl),
+                'e2': uniform(loc = e2L, scale = e2_scl),
+                'e3': uniform(loc = e3L, scale = e3_scl),
+                'a3': uniform(loc = a3L, scale = a3_scl )}
+
+xsa2e3, pla2e3, pua2e3 = two_dim_uq(num_inner=700, num_outer=500, 
+               dist_dict_aleatory = dist_dict_al, 
+               dist_dict_epistemic = dist_dict_ep, 
+               calc_srq = srq1,
+               title = "A3 to Ep")
+
+# a2 to ep
+dist_dict_al = {'a1': norm(loc = mu_a1, scale = s_a1),
+                'a3': norm(loc = mu_a3, scale = s_a3)}
+
+dist_dict_ep = {'e1':  uniform(loc = e1L, scale = e1_scl),
+                'e2': uniform(loc = e2L, scale = e2_scl),
+                'e3': uniform(loc = e3L, scale = e3_scl),
+                'a2': uniform(loc = a2L, scale = a2_scl)}
+
+xsa2e2, pla2e2, pua2e2 = two_dim_uq(num_inner=700, num_outer=500, 
+               dist_dict_aleatory = dist_dict_al, 
+               dist_dict_epistemic = dist_dict_ep, 
+               calc_srq = srq1,
+               title = "A2 to Ep")
+
+# a1 to ep
+dist_dict_al = {'a2': norm(loc = mu_a2, scale = s_a2),
+                'a3': norm(loc = mu_a3, scale = s_a3)}
+
+dist_dict_ep = {'e1':  uniform(loc = e1L, scale = e1_scl),
+                'e2': uniform(loc = e2L, scale = e2_scl),
+                'e3': uniform(loc = e3L, scale = e3_scl),
+                'a1': uniform(loc = a1L, scale = a1_scl)}
+
+xsa2e1, pla2e1, pua2e1 = two_dim_uq(num_inner=700, num_outer=500, 
+               dist_dict_aleatory = dist_dict_al, 
+               dist_dict_epistemic = dist_dict_ep, 
+               calc_srq = srq1,
+               title = "A1 to Ep")
+      
+### move epistemic to aleatory
+
+# e3 to al
+dist_dict_al = {'a1': norm(loc = mu_a1, scale = s_a1),
+                'a2': norm(loc = mu_a2, scale = s_a2),
+                'a3': norm(loc = mu_a3, scale = s_a3),
+                'e3': norm(loc = mu_a3, scale = s_e3)}
+
+dist_dict_ep = {'e1':  uniform(loc = e1L, scale = e1_scl),
+                'e2': uniform(loc = e2L, scale = e2_scl)}
+
+xse2a3, ple2a3, pue2a3 = two_dim_uq(num_inner=700, num_outer=500, 
+               dist_dict_aleatory = dist_dict_al, 
+               dist_dict_epistemic = dist_dict_ep, 
+               calc_srq = srq1,
+               title = "E3 to Al")
+
+# e2 to al
+dist_dict_al = {'a1': norm(loc = mu_a1, scale = s_a1),
+                'a2': norm(loc = mu_a2, scale = s_a2),
+                'a3': norm(loc = mu_a3, scale = s_a3),
+                'e2': norm(loc = mu_e2, scale = s_e2)}
+
+dist_dict_ep = {'e1':  uniform(loc = e1L, scale = e1_scl),
+                'e3': uniform(loc = e3L, scale = e3_scl)}
+
+xse2a2, ple2a2, pue2a2 = two_dim_uq(num_inner=700, num_outer=500, 
+               dist_dict_aleatory = dist_dict_al, 
+               dist_dict_epistemic = dist_dict_ep, 
+               calc_srq = srq1,
+               title = "E2 to Al")
+
+# e1 to al
+dist_dict_al = {'a1': norm(loc = mu_a1, scale = s_a1),
+                'a2': norm(loc = mu_a2, scale = s_a2),
+                'a3': norm(loc = mu_a3, scale = s_a3),
+                'e1':  norm(loc = mu_e1, scale = s_e1)}
+
+dist_dict_ep = {'e2': uniform(loc = e2L, scale = e2_scl),
+                'e3': uniform(loc = e3L, scale = e3_scl)}
+
+xse2a1, ple2a1, pue2a1 = two_dim_uq(num_inner=700, num_outer=500, 
+               dist_dict_aleatory = dist_dict_al, 
+               dist_dict_epistemic = dist_dict_ep, 
+               calc_srq = srq1,
+               title = "E1 to Al")
 
 ###############################################################################
 # Tests with 3D UQ
@@ -457,26 +520,56 @@ prob_dict = {'a1': 0.75,
             'e2': 0.15,
             'e3': 0.2}
 
-dist_dict = {'a1': norm(loc = 2, scale = 0.13),
-            'a2': norm(loc = 7, scale = 0.55),
-            'a3': norm(loc = 50, scale = 0.12),
-            'e1':  uniform(loc = 0.5, scale = 0.2),
-            'e2': uniform(loc = 1, scale = 0.1),
-            'e3': uniform(loc = 100, scale = 10)}
+dist_dict = {'a1': norm(loc = mu_a1, scale = s_a1),
+            'a2': norm(loc = mu_a2, scale = s_a2),
+            'a3': norm(loc = mu_a3, scale = s_a3),
+            'e1': norm(loc = mu_e1, scale = s_e1),
+            'e2': norm(loc = mu_e2, scale = s_e2),
+            'e3': norm(loc = mu_e3, scale = s_e3)}
+
+bound_dict = {'a1': uniform(loc = a1L, scale = a1_scl),
+            'a2': uniform(loc = a2L, scale = a2_scl),
+            'a3': uniform(loc = a3L, scale = a3_scl),
+            'e1': uniform(loc = e1L, scale = e1_scl),
+            'e2': uniform(loc = e2L, scale = e2_scl),
+            'e3': uniform(loc = e3L, scale = e3_scl)}
 
 xs3, pl3, pu3 = three_dim_uq(num_inner = 1000, num_outer=100, num_toss = 10, 
-             a_probs_dict=prob_dict, dist_dict = dist_dict, calc_srq = srq1,
+             a_probs_dict=prob_dict, dist_dict = dist_dict, bound_dict = bound_dict, 
+             calc_srq = srq1,
              title = "3D UQ - Test")
 
-fig_2d_3d = plt.figure()
-p = fig_2d_3d.add_subplot(1,1,1)
-p.plot(xs2, pl2, color = 'tab:blue')
+fig_a2e = plt.figure()
+p = fig_a2e.add_subplot(1,1,1)
+p.plot(xs3, pl3, color = 'tab:red', linewidth = 3, label = "3D")
+p.plot(xs3, pu3, color = 'tab:red', linewidth = 3)
+p.plot(xs2, pl2, color = 'tab:blue', label = "Original")
 p.plot(xs2, pu2, color = 'tab:blue')
-p.plot(xs3, pl3, color = 'tab:red')
-p.plot(xs3, pu3, color = 'tab:red')
+p.plot(xsa2e1, pla2e1, color = 'tab:orange', label = "A1 to Ep")
+p.plot(xsa2e1, pua2e1, color = 'tab:orange')
+p.plot(xsa2e2, pla2e2, color = 'tab:green', label = "A2 to Ep")
+p.plot(xsa2e2, pua2e2, color = 'tab:green')
+p.plot(xsa2e3, pla2e3, color = 'tab:purple', label = "A3 to Ep")
+p.plot(xsa2e3, pua2e3, color = 'tab:purple')
+plt.title("Aleatory to Epistemic Simulation")
+plt.legend()
 plt.show()
 
-
+fig_e2a = plt.figure()
+p1 = fig_e2a.add_subplot(1,1,1)
+p1.plot(xs3, pl3, color = 'tab:red', linewidth = 3, label = "3D")
+p1.plot(xs3, pu3, color = 'tab:red', linewidth = 3)
+p1.plot(xs2, pl2, color = 'tab:blue', label = "Original")
+p1.plot(xs2, pu2, color = 'tab:blue')
+p1.plot(xse2a1, ple2a1, color = 'tab:orange', label = "E1 to Al")
+p1.plot(xse2a1, pue2a1, color = 'tab:orange')
+p1.plot(xse2a2, ple2a2, color = 'tab:green', label = "E2 to Al")
+p1.plot(xse2a2, pue2a2, color = 'tab:green')
+p1.plot(xse2a3, ple2a3, color = 'tab:purple', label = "E3 to Al")
+p1.plot(xse2a3, pue2a3, color = 'tab:purple')
+plt.title("Epistemic to Aleatory Simulation")
+plt.legend()
+plt.show()
 
 
 
